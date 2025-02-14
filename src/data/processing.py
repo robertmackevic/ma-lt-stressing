@@ -6,6 +6,27 @@ GRAVE = "\u0300"
 ACUTE = "\u0301"
 TILDE = "\u0303"
 STRESS_MARKS = GRAVE + ACUTE + TILDE
+STRESS_LETTERS = "aąeęėiįylmnoruųū"
+
+
+def load_texts(filepath: Path, clean: bool = True) -> Optional[List[str]]:
+    with open(filepath, "r", encoding="utf-8") as file:
+        texts = [line for line in file.readlines()]
+        return clean_texts(texts) if clean else texts
+
+
+def clean_texts(texts: List[str]) -> List[str]:
+    cleaned_texts = []
+    for text in texts:
+        text = normalize_text(text)
+
+        for segment in split_text_into_segments_by_length(text):
+            filtered_text = filter_punctuations(segment)
+
+            if len(filtered_text) > 0 and is_valid_stressing(filtered_text):
+                cleaned_texts.append(segment)
+
+    return cleaned_texts
 
 
 def normalize_text(text: str) -> str:
@@ -18,32 +39,6 @@ def normalize_text(text: str) -> str:
         .strip()
         .lower()
     )
-
-
-def clean_texts(texts: List[str]) -> List[str]:
-    cleaned_texts = []
-    for text in texts:
-        text = normalize_text(text)
-
-        for segment in split_text_into_segments_by_length(text):
-            if len(remove_non_alphabetic_characters(segment)) > 0:
-                cleaned_texts.append(segment)
-
-    return cleaned_texts
-
-
-def load_texts(filepath: Path, clean: bool = True) -> Optional[List[str]]:
-    with open(filepath, "r", encoding="utf-8") as file:
-        texts = [line for line in file.readlines()]
-        return clean_texts(texts) if clean else texts
-
-
-def remove_non_alphabetic_characters(text: str) -> str:
-    return " ".join("".join(
-        character
-        if character.isalpha() or character.isspace() or character in STRESS_MARKS
-        else "" for character in text
-    ).split())
 
 
 def split_text_into_segments_by_length(text: str, max_length: int = 200) -> List[str]:
@@ -72,3 +67,21 @@ def split_text_into_segments_by_length(text: str, max_length: int = 200) -> List
         start = end
 
     return segments
+
+
+def filter_punctuations(text: str) -> str:
+    return normalize_text("".join(
+        character
+        if character.isalpha() or character.isspace() or character in STRESS_MARKS
+        else " " for character in text
+    ))
+
+
+def is_valid_stressing(text: str) -> bool:
+    """ Input os normalized text without non-alphabetic characters except for stress marks """
+    return all(
+        sum(1 for character in word if character in STRESS_MARKS) == 1
+        and
+        all(word[i - 1] in STRESS_LETTERS for i in range(len(word)) if word[i] in STRESS_MARKS)
+        for word in text.split()
+    )
