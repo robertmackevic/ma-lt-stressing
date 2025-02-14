@@ -2,11 +2,7 @@ import re
 from pathlib import Path
 from typing import List, Optional
 
-GRAVE = "\u0300"
-ACUTE = "\u0301"
-TILDE = "\u0303"
-STRESS_MARKS = GRAVE + ACUTE + TILDE
-STRESS_LETTERS = "aąeęėiįylmnoruųū"
+from src.data.vocab import STRESS_LETTERS, STRESS_MARKS
 
 
 def load_texts(filepath: Path, clean: bool = True) -> Optional[List[str]]:
