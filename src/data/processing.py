@@ -81,3 +81,7 @@ def is_valid_stressing(text: str) -> bool:
         all(word[i - 1] in STRESS_LETTERS for i in range(len(word)) if word[i] in STRESS_MARKS)
         for word in text.split()
     )
+
+
+def remove_stress_marks(text: str) -> str:
+    return re.sub(rf"[{re.escape(STRESS_MARKS)}]", "", text)

@@ -18,8 +18,11 @@ def run() -> None:
     source_tokenizer = Tokenizer(Vocab.init_source_vocab(train_texts))
     target_tokenizer = Tokenizer(Vocab.init_target_vocab(train_texts))
 
-    train_dataset = StressingDataset(config, train_texts, source_tokenizer, target_tokenizer)
-    val_dataset = StressingDataset(config, val_texts, source_tokenizer, target_tokenizer)
+    train_dataset = StressingDataset(train_texts, source_tokenizer, target_tokenizer)
+    val_dataset = StressingDataset(val_texts, source_tokenizer, target_tokenizer)
+
+    print(train_dataset[0])
+    print(val_dataset[0])
 
 
 if __name__ == "__main__":

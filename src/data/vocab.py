@@ -50,7 +50,7 @@ class Vocab:
 
     @classmethod
     def init_target_vocab(cls, texts: List[str]) -> Self:
-        texts = [re.sub(rf"[^{re.escape(STRESS_MARKS)}\s]", "#", text) for text in texts]
+        texts = [re.sub(rf"[^{re.escape(STRESS_MARKS)}\s]", cls.UNK_TOKEN, text) for text in texts]
         return cls.init_from_texts(texts)
 
     def __len__(self) -> int:
