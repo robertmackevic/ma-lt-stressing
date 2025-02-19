@@ -1,8 +1,11 @@
 import re
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from src.data.vocab import STRESS_LETTERS, STRESS_MARKS
+from torch import Tensor
+from torch.nn.utils.rnn import pad_sequence
+
+from src.data.vocab import STRESS_LETTERS, STRESS_MARKS, Vocab
 
 
 def load_texts(filepath: Path, clean: bool = True) -> Optional[List[str]]:
@@ -85,3 +88,10 @@ def is_valid_stressing(text: str) -> bool:
 
 def remove_stress_marks(text: str) -> str:
     return re.sub(rf"[{re.escape(STRESS_MARKS)}]", "", text)
+
+
+def collate_fn(batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
+    source, target = zip(*batch)
+    padded_source = pad_sequence(source, batch_first=True, padding_value=Vocab.SPECIAL_TO_ID[Vocab.PAD_TOKEN])
+    padded_target = pad_sequence(target, batch_first=True, padding_value=Vocab.SPECIAL_TO_ID[Vocab.PAD_TOKEN])
+    return padded_source, padded_target

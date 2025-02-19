@@ -33,6 +33,10 @@ def save_config(config: Namespace, filepath: Path) -> None:
         json.dump(vars(config), file, indent=4)  # type: ignore
 
 
+def get_available_device() -> torch.device:
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def seed_everything(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)

@@ -5,7 +5,6 @@ from typing import Self
 import torch
 
 from src.data.vocab import Vocab
-from src.paths import TOKENIZER_FILE
 
 
 class Tokenizer:
@@ -13,7 +12,7 @@ class Tokenizer:
         self.vocab = vocab
 
     @classmethod
-    def init_from_file(cls, filepath: Path = TOKENIZER_FILE) -> Self:
+    def init_from_file(cls, filepath: Path) -> Self:
         with filepath.open("r") as file:
             tokenizer_data = json.load(file)
             return cls(Vocab(tokenizer_data["token_to_id"], tokenizer_data["token_freq"]))
