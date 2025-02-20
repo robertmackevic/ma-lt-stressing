@@ -8,6 +8,7 @@ from typing import Optional
 
 import numpy as np
 import torch
+from torch.nn import Module
 
 from src.paths import CONFIG_FILE
 
@@ -31,6 +32,10 @@ def load_config(filepath: Path = CONFIG_FILE) -> Namespace:
 def save_config(config: Namespace, filepath: Path) -> None:
     with filepath.open("w") as file:
         json.dump(vars(config), file, indent=4)  # type: ignore
+
+
+def save_weights(filepath: Path, model: Module) -> None:
+    torch.save(model.state_dict(), filepath)
 
 
 def get_available_device() -> torch.device:
