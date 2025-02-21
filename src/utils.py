@@ -42,6 +42,10 @@ def get_available_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def count_parameters(module: Module, trainable: bool = False) -> int:
+    return sum(p.numel() for p in module.parameters() if not trainable or (trainable and p.requires_grad))
+
+
 def seed_everything(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)

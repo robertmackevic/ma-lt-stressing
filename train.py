@@ -7,7 +7,7 @@ from src.data.tokenizer import Tokenizer
 from src.data.vocab import Vocab
 from src.paths import DATA_DIR
 from src.trainer import Trainer
-from src.utils import get_logger, load_config, seed_everything
+from src.utils import get_logger, load_config, seed_everything, count_parameters
 
 
 def run() -> None:
@@ -40,6 +40,7 @@ def run() -> None:
     )
 
     trainer = Trainer(config, source_tokenizer, target_tokenizer)
+    logger.info(f"Number of trainable parameters: {count_parameters(trainer.model):,}")
 
     try:
         logger.info("Starting training...")
