@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from typing import Dict, Self, List
 
 GRAVE_ACCENT = "\u0300"
@@ -8,16 +9,22 @@ STRESS_MARKS = GRAVE_ACCENT + ACUTE_ACCENT + TILDE_ACCENT
 STRESS_LETTERS = "aąeęėiįylmnoruųū"
 
 
+@dataclass(frozen=True)
+class Symbol:
+    id: int
+    token: str
+
+
 class Vocab:
-    PAD_TOKEN = "*"
-    UNK_TOKEN = "#"
-    SOS_TOKEN = "<"
-    EOS_TOKEN = ">"
+    PAD = Symbol(id=0, token="*")
+    UNK = Symbol(id=1, token="#")
+    SOS = Symbol(id=2, token="<")
+    EOS = Symbol(id=3, token=">")
     SPECIAL_TO_ID = {
-        PAD_TOKEN: 0,
-        UNK_TOKEN: 1,
-        SOS_TOKEN: 2,
-        EOS_TOKEN: 3,
+        PAD.token: PAD.id,
+        UNK.token: UNK.id,
+        SOS.token: SOS.id,
+        EOS.token: EOS.id,
     }
 
     def __init__(self, token_to_id: Dict[str, int], token_freq: Dict[str, int]) -> None:
@@ -28,7 +35,7 @@ class Vocab:
     @classmethod
     def init_from_texts(cls, texts: List[str]) -> Self:
         token_to_id = {**cls.SPECIAL_TO_ID}
-        token_freq = {cls.PAD_TOKEN: 0, cls.UNK_TOKEN: 0, cls.SOS_TOKEN: 0, cls.EOS_TOKEN: 0}
+        token_freq = {token: 0 for token in token_to_id.keys()}
 
         for text in texts:
             for token in text:
@@ -50,7 +57,7 @@ class Vocab:
 
     @classmethod
     def init_target_vocab(cls, texts: List[str]) -> Self:
-        texts = [re.sub(rf"[^{re.escape(STRESS_MARKS)}\s]", cls.UNK_TOKEN, text) for text in texts]
+        texts = [re.sub(rf"[^{re.escape(STRESS_MARKS)}\s]", cls.UNK.token, text) for text in texts]
         return cls.init_from_texts(texts)
 
     def __len__(self) -> int:

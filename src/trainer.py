@@ -1,9 +1,10 @@
 from argparse import Namespace
 from os import listdir, makedirs
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from warnings import filterwarnings
 
 import torch
+from torch import Tensor
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
@@ -12,23 +13,12 @@ from tqdm import tqdm
 
 from src.data.tokenizer import Tokenizer
 from src.data.vocab import Vocab
+from src.metrics import AverageMeter, compute_sequence_accuracy
 from src.model.transformer import Seq2SeqTransformer
 from src.paths import RUNS_DIR, CONFIG_FILE, SOURCE_TOKENIZER_FILE, TARGET_TOKENIZER_FILE
 from src.utils import get_available_device, save_config, save_weights, get_logger
 
 filterwarnings("ignore", message="The PyTorch API of nested tensors is in prototype stage")
-
-
-class AverageMeter:
-    def __init__(self) -> None:
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, value: float) -> None:
-        self.sum += value
-        self.count += 1
-        self.avg = self.sum / self.count
 
 
 class Trainer:
@@ -91,32 +81,13 @@ class Trainer:
 
     def _train_for_epoch(self, dataloader: DataLoader) -> Dict[str, AverageMeter]:
         self.model.train()
-        pad_id = Vocab.SPECIAL_TO_ID[Vocab.PAD_TOKEN]
         metrics = {
             "loss": AverageMeter(),
         }
 
         for batch in tqdm(dataloader):
             self.optimizer.zero_grad()
-            source = batch[0].to(self.device)
-            target = batch[1].to(self.device)
-
-            target_input = target[:, :-1]
-            target_output = target[:, 1:]
-
-            source_padding_mask = source == pad_id
-
-            output = self.model(
-                source, target_input,
-                target_mask=self.model.transformer.generate_square_subsequent_mask(
-                    target_input.size(1), device=self.device, dtype=torch.bool
-                ),
-                source_padding_mask=source_padding_mask,
-                target_padding_mask=target_input == pad_id,
-                memory_padding_mask=source_padding_mask,
-            )
-
-            loss = self.loss_fn(output.transpose(1, 2), target_output)
+            loss, *_ = self._forward_batch(batch)
             loss.backward()
             self.optimizer.step()
             metrics["loss"].update(loss.item())
@@ -125,35 +96,43 @@ class Trainer:
 
     def eval(self, dataloader: DataLoader) -> Dict[str, AverageMeter]:
         self.model.eval()
-        pad_id = Vocab.SPECIAL_TO_ID[Vocab.PAD_TOKEN]
         metrics = {
             "loss": AverageMeter(),
+            "sequence_accuracy": AverageMeter(),
         }
 
         for batch in tqdm(dataloader):
-            source = batch[0].to(self.device)
-            target = batch[1].to(self.device)
-
-            target_input = target[:, :-1]
-            target_output = target[:, 1:]
-
-            source_padding_mask = source == pad_id
-
             with torch.no_grad():
-                output = self.model(
-                    source, target_input,
-                    target_mask=self.model.transformer.generate_square_subsequent_mask(
-                        target_input.size(1), device=self.device, dtype=torch.bool
-                    ),
-                    source_padding_mask=source == pad_id,
-                    target_padding_mask=target_input == pad_id,
-                    memory_padding_mask=source_padding_mask,
-                )
+                loss, output, target = self._forward_batch(batch)
 
-            loss = self.loss_fn(output.transpose(1, 2), target_output)
             metrics["loss"].update(loss.item())
+            metrics["sequence_accuracy"].update(compute_sequence_accuracy(output, target))
 
         return metrics
+
+    def _forward_batch(self, batch: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
+        source = batch[0].to(self.device)
+        target = batch[1].to(self.device)
+
+        target_input = target[:, :-1]
+        target_output = target[:, 1:]
+
+        source_padding_mask = source == Vocab.PAD.id
+
+        output = self.model(
+            source=source,
+            target=target_input,
+            target_mask=self.model.transformer.generate_square_subsequent_mask(
+                target_input.size(1), device=self.device, dtype=torch.bool
+            ),
+            source_padding_mask=source_padding_mask,
+            target_padding_mask=target_input == Vocab.PAD.id,
+            memory_padding_mask=source_padding_mask,
+        )
+
+        loss = self.loss_fn(output.transpose(1, 2), target_output)
+        output = output.argmax(dim=-1)
+        return loss, output, target_output
 
     def log_metrics(
             self,

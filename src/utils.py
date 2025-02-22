@@ -38,6 +38,12 @@ def save_weights(filepath: Path, model: Module) -> None:
     torch.save(model.state_dict(), filepath)
 
 
+def load_weights(filepath: Path, model: Module) -> Module:
+    checkpoint = torch.load(filepath, map_location=get_available_device(), weights_only=True)
+    model.load_state_dict(checkpoint)
+    return model
+
+
 def get_available_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

@@ -2,7 +2,7 @@
     "seed": 42,
     "batch_size": 16,
     "epochs": 10,
-    "best_score_metric": "loss",
+    "best_score_metric": "sequence_accuracy",
     "eval_interval": 1,
     "save_interval": 10,
     "learning_rate": 1e-4,

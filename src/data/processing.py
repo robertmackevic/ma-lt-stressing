@@ -92,6 +92,6 @@ def remove_stress_marks(text: str) -> str:
 
 def collate_fn(batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
     source, target = zip(*batch)
-    padded_source = pad_sequence(source, batch_first=True, padding_value=Vocab.SPECIAL_TO_ID[Vocab.PAD_TOKEN])
-    padded_target = pad_sequence(target, batch_first=True, padding_value=Vocab.SPECIAL_TO_ID[Vocab.PAD_TOKEN])
+    padded_source = pad_sequence(source, batch_first=True, padding_value=Vocab.PAD.id)
+    padded_target = pad_sequence(target, batch_first=True, padding_value=Vocab.PAD.id)
     return padded_source, padded_target

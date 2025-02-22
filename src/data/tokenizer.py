@@ -18,16 +18,16 @@ class Tokenizer:
             return cls(Vocab(tokenizer_data["token_to_id"], tokenizer_data["token_freq"]))
 
     def encode(self, text: str) -> torch.Tensor:
-        return torch.tensor([Vocab.SPECIAL_TO_ID[Vocab.SOS_TOKEN]] + [
-            self.vocab.token_to_id.get(token, Vocab.SPECIAL_TO_ID[Vocab.UNK_TOKEN])
+        return torch.tensor([Vocab.SOS.id] + [
+            self.vocab.token_to_id.get(token, Vocab.UNK.id)
             for token in text
-        ] + [Vocab.SPECIAL_TO_ID[Vocab.EOS_TOKEN]])
+        ] + [Vocab.EOS.id])
 
     def decode(self, tensor: torch.Tensor) -> str:
         return "".join(
-            self.vocab.id_to_token.get(token_id, Vocab.UNK_TOKEN)
+            self.vocab.id_to_token.get(token_id, Vocab.UNK.token)
             for token_id in tensor.tolist()
-        ).replace(Vocab.PAD_TOKEN, "")[1:-1]
+        ).replace(Vocab.PAD.token, "")[1:-1]
 
     def save(self, filepath: Path) -> None:
         with filepath.open("w") as file:
