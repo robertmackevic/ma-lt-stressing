@@ -1,6 +1,6 @@
 from argparse import Namespace
 from os import listdir, makedirs
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 from warnings import filterwarnings
 
 import torch
@@ -12,8 +12,8 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import tqdm
 
 from src.data.tokenizer import Tokenizer
-from src.data.vocab import Vocab
-from src.metrics import AverageMeter, compute_sequence_accuracy
+from src.data.vocab import Vocab, GRAVE_ACCENT, ACUTE_ACCENT, TILDE_ACCENT
+from src.metrics import AverageMeter, compute_sequence_accuracy, compute_confusion_matrix_for_tokens
 from src.model.transformer import Seq2SeqTransformer
 from src.paths import RUNS_DIR, CONFIG_FILE, SOURCE_TOKENIZER_FILE, TARGET_TOKENIZER_FILE
 from src.utils import get_available_device, save_config, save_weights, get_logger
@@ -99,7 +99,33 @@ class Trainer:
         metrics = {
             "loss": AverageMeter(),
             "sequence_accuracy": AverageMeter(),
+            "token_precision": AverageMeter(),
+            "token_recall": AverageMeter(),
+            "token_f1": AverageMeter(),
+            "stress_token_precision": AverageMeter(),
+            "stress_token_recall": AverageMeter(),
+            "stress_token_f1": AverageMeter(),
+            "grave_token_precision": AverageMeter(),
+            "grave_token_recall": AverageMeter(),
+            "grave_token_f1": AverageMeter(),
+            "acute_token_precision": AverageMeter(),
+            "acute_token_recall": AverageMeter(),
+            "acute_token_f1": AverageMeter(),
+            "tilde_token_precision": AverageMeter(),
+            "tilde_token_recall": AverageMeter(),
+            "tilde_token_f1": AverageMeter(),
         }
+
+        def update_metrics(prefix: str, tokens: List[int]):
+            tp, tn, fp, fn = compute_confusion_matrix_for_tokens(output, target, tokens)
+
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+            metrics[f"{prefix}_precision"].update(precision)
+            metrics[f"{prefix}_recall"].update(recall)
+            metrics[f"{prefix}_f1"].update(f1)
 
         for batch in tqdm(dataloader):
             with torch.no_grad():
@@ -107,6 +133,11 @@ class Trainer:
 
             metrics["loss"].update(loss.item())
             metrics["sequence_accuracy"].update(compute_sequence_accuracy(output, target))
+            update_metrics("token", list(self.target_tokenizer.vocab.non_special_token_to_id.values()))
+            update_metrics("stress_token", list(self.target_tokenizer.vocab.stress_token_to_id.values()))
+            update_metrics("grave_token", [self.target_tokenizer.vocab.stress_token_to_id[GRAVE_ACCENT]])
+            update_metrics("acute_token", [self.target_tokenizer.vocab.stress_token_to_id[ACUTE_ACCENT]])
+            update_metrics("tilde_token", [self.target_tokenizer.vocab.stress_token_to_id[TILDE_ACCENT]])
 
         return metrics
 

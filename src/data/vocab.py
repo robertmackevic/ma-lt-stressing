@@ -32,6 +32,18 @@ class Vocab:
         self.token_to_id = token_to_id
         self.id_to_token = {value: key for key, value in token_to_id.items()}
 
+        self.stress_token_to_id = {
+            token: token_to_id[token]
+            for token in STRESS_MARKS
+            if token in token_to_id
+        }
+
+        self.non_special_token_to_id = {
+            token: _id
+            for token, _id in token_to_id.items()
+            if token not in self.SPECIAL_TO_ID
+        }
+
     @classmethod
     def init_from_texts(cls, texts: List[str]) -> Self:
         token_to_id = {**cls.SPECIAL_TO_ID}

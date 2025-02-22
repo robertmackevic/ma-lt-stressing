@@ -1,7 +1,7 @@
 {
     "seed": 42,
-    "batch_size": 16,
-    "epochs": 10,
+    "batch_size": 32,
+    "epochs": 100,
     "best_score_metric": "sequence_accuracy",
     "eval_interval": 1,
     "save_interval": 10,
@@ -10,7 +10,7 @@
     "embedding_dim": 128,
     "max_sequence_length": 1000,
     "num_heads": 4,
-    "num_encoder_layers": 2,
-    "num_decoder_layers": 2,
-    "dim_feedforward": 128
+    "num_encoder_layers": 3,
+    "num_decoder_layers": 3,
+    "dim_feedforward": 256
 }
