@@ -8,7 +8,7 @@ from src.data.sampler import BucketSampler
 from src.data.tokenizer import Tokenizer
 from src.paths import RUNS_DIR, CONFIG_FILE, DATA_DIR, SOURCE_TOKENIZER_FILE, TARGET_TOKENIZER_FILE
 from src.trainer import Trainer
-from src.utils import get_logger, load_config, seed_everything, load_weights, count_parameters
+from src.utils import get_logger, load_config, seed_everything, load_weights, count_parameters, log_systems_info
 
 
 def parse_args() -> Namespace:
@@ -51,4 +51,5 @@ def run(version: str, weights: str) -> None:
 
 
 if __name__ == "__main__":
+    log_systems_info()
     run(**vars(parse_args()))

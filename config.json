@@ -7,10 +7,10 @@
     "save_interval": 10,
     "learning_rate": 1e-4,
     "dropout": 0.1,
-    "embedding_dim": 128,
+    "embedding_dim": 512,
     "max_sequence_length": 1000,
-    "num_heads": 4,
+    "num_heads": 8,
     "num_encoder_layers": 3,
     "num_decoder_layers": 3,
-    "dim_feedforward": 256
+    "dim_feedforward": 2048
 }

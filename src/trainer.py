@@ -40,7 +40,7 @@ class Trainer:
             params=self.model.parameters(),
             lr=self.config.learning_rate,
         )
-        self.loss_fn = CrossEntropyLoss().to(self.device)
+        self.loss_fn = CrossEntropyLoss(weight=target_tokenizer.compute_class_weights()).to(self.device)
 
     def fit(self, train_dl: DataLoader, val_dl: DataLoader) -> None:
         RUNS_DIR.mkdir(exist_ok=True, parents=True)
@@ -148,17 +148,14 @@ class Trainer:
         target_input = target[:, :-1]
         target_output = target[:, 1:]
 
-        source_padding_mask = source == Vocab.PAD.id
-
         output = self.model(
             source=source,
             target=target_input,
             target_mask=self.model.transformer.generate_square_subsequent_mask(
                 target_input.size(1), device=self.device, dtype=torch.bool
             ),
-            source_padding_mask=source_padding_mask,
+            source_padding_mask=source == Vocab.PAD.id,
             target_padding_mask=target_input == Vocab.PAD.id,
-            memory_padding_mask=source_padding_mask,
         )
 
         loss = self.loss_fn(output.transpose(1, 2), target_output)

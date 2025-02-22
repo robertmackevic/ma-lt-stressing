@@ -36,17 +36,13 @@ class Seq2SeqTransformer(Module):
             target_mask: Optional[Tensor] = None,
             source_padding_mask: Optional[Tensor] = None,
             target_padding_mask: Optional[Tensor] = None,
-            memory_padding_mask: Optional[Tensor] = None,
     ) -> Tensor:
-        source = self.positional_encoding(self.source_embedding(source))
-        target = self.positional_encoding(self.target_embedding(target))
         output = self.transformer(
-            src=source,
-            tgt=target,
+            src=self.positional_encoding(self.source_embedding(source)),
+            tgt=self.positional_encoding(self.target_embedding(target)),
             src_mask=source_mask,
             tgt_mask=target_mask,
             src_key_padding_mask=source_padding_mask,
             tgt_key_padding_mask=target_padding_mask,
-            memory_key_padding_mask=memory_padding_mask,
         )
         return self.generator(output)

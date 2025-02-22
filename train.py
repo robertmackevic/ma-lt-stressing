@@ -7,7 +7,7 @@ from src.data.tokenizer import Tokenizer
 from src.data.vocab import Vocab
 from src.paths import DATA_DIR
 from src.trainer import Trainer
-from src.utils import get_logger, load_config, seed_everything, count_parameters
+from src.utils import get_logger, load_config, seed_everything, count_parameters, log_systems_info
 
 
 def run() -> None:
@@ -50,4 +50,5 @@ def run() -> None:
 
 
 if __name__ == "__main__":
+    log_systems_info()
     run()

@@ -1,12 +1,15 @@
 import json
 import logging
+import platform
 import random
 import sys
 from argparse import Namespace
 from pathlib import Path
 from typing import Optional
 
+import numpy
 import numpy as np
+import psutil
 import torch
 from torch.nn import Module
 
@@ -22,6 +25,39 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     )
     logger = logging.getLogger(name)
     return logger
+
+
+def log_systems_info() -> None:
+    div = 1024 ** 3
+    uname = platform.uname()
+    cuda_enabled = torch.cuda.is_available()
+    disk = psutil.disk_usage("/")
+
+    if cuda_enabled:
+        num_gpus = torch.cuda.device_count()
+        gpu_info = ", ".join(
+            f"{torch.cuda.get_device_name(i)} ({round(torch.cuda.get_device_properties(i).total_memory / div, 2)} GB)"
+            for i in range(num_gpus)
+        )
+
+    else:
+        num_gpus = 0
+        gpu_info = "None"
+
+    get_logger(__name__).info(f"""
+        CPU:
+            Model:              {platform.processor()}
+            Physical cores:     {psutil.cpu_count(logical=False)}
+            Logical cores:      {psutil.cpu_count(logical=True)}
+            Current Frequency:  {psutil.cpu_freq().current:.2f} MHz
+        GPUs:                   {num_gpus} | {gpu_info}
+        RAM:                    {round(psutil.virtual_memory().total / div, 2)} GB
+        Disk:                   Total: {round(disk.total / div, 2)} GB, Free: {round(disk.free / div, 2)} GB
+        OS:                     {uname.system} {uname.release} ({uname.version})
+        Python:                 {sys.version}
+        PyTorch:                {torch.__version__} | CUDA enabled: {cuda_enabled}
+        NumPy:                  {numpy.__version__}
+    """)
 
 
 def load_config(filepath: Path = CONFIG_FILE) -> Namespace:

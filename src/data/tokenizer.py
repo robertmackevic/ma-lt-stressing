@@ -29,6 +29,13 @@ class Tokenizer:
             for token_id in tensor.tolist()
         ).replace(Vocab.PAD.token, "")[1:-1]
 
+    def compute_class_weights(self) -> torch.Tensor:
+        total_tokens = sum(self.vocab.token_freq.values())
+        weights = torch.tensor([
+            0 if freq == 0 else total_tokens / freq for freq in self.vocab.token_freq.values()
+        ])
+        return weights / weights.max()
+
     def save(self, filepath: Path) -> None:
         with filepath.open("w") as file:
             json.dump({

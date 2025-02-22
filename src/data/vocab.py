@@ -47,7 +47,10 @@ class Vocab:
     @classmethod
     def init_from_texts(cls, texts: List[str]) -> Self:
         token_to_id = {**cls.SPECIAL_TO_ID}
-        token_freq = {token: 0 for token in token_to_id.keys()}
+        token_freq = {
+            token: len(texts) if token in (cls.SOS.token, cls.EOS.token) else 0
+            for token in token_to_id.keys()
+        }
 
         for text in texts:
             for token in text:
