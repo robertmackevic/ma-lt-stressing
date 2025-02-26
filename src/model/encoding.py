@@ -11,13 +11,12 @@ class PositionalEncoding(Module):
         self.dropout = Dropout(p=dropout)
         self.embedding_dim = embedding_dim
 
-        position = torch.arange(max_length).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, embedding_dim, 2) * (-math.log(10000.0) / embedding_dim))
+        position = torch.arange(max_length).unsqueeze(1) * div_term
 
-        pe = torch.zeros(max_length, embedding_dim)
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
+        pe = torch.zeros(1, max_length, embedding_dim)
+        pe[:, :, 0::2] = torch.sin(position)
+        pe[:, :, 1::2] = torch.cos(position)
 
         self.register_buffer("pe", pe)
 

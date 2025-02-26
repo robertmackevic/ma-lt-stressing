@@ -24,4 +24,6 @@ class StressingDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
         text = self.texts[index]
-        return self.source_tokenizer.encode(remove_stress_marks(text)), self.target_tokenizer.encode(text)
+        source = self.source_tokenizer.encode(remove_stress_marks(text))
+        target = self.target_tokenizer.encode(text)
+        return source, target

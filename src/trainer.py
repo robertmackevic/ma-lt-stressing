@@ -40,7 +40,10 @@ class Trainer:
             params=self.model.parameters(),
             lr=self.config.learning_rate,
         )
-        self.loss_fn = CrossEntropyLoss(weight=target_tokenizer.compute_class_weights()).to(self.device)
+        self.loss_fn = CrossEntropyLoss(
+            weight=target_tokenizer.compute_class_weights(),
+            ignore_index=Vocab.PAD.id,
+        ).to(self.device)
 
     def fit(self, train_dl: DataLoader, val_dl: DataLoader) -> None:
         RUNS_DIR.mkdir(exist_ok=True, parents=True)

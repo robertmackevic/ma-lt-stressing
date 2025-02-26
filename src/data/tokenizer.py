@@ -27,7 +27,7 @@ class Tokenizer:
         return "".join(
             self.vocab.id_to_token.get(token_id, Vocab.UNK.token)
             for token_id in tensor.tolist()
-        ).replace(Vocab.PAD.token, "")[1:-1]
+        ).translate(str.maketrans("", "", Vocab.PAD.token + Vocab.SOS.token + Vocab.EOS.token))
 
     def compute_class_weights(self) -> torch.Tensor:
         total_tokens = sum(self.vocab.token_freq.values())
