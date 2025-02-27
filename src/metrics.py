@@ -22,12 +22,16 @@ def compute_confusion_matrix_for_tokens(
         output: Tensor, target: Tensor, token_ids: List[int]
 ) -> Tuple[int, int, int, int]:
     token_ids = torch.tensor(token_ids, device=target.device)
+    non_padding_mask = target != Vocab.PAD.id
 
-    target_positive = torch.isin(target, token_ids)
-    output_positive = torch.isin(output, token_ids)
+    valid_target = target[non_padding_mask]
+    valid_output = output[non_padding_mask]
 
-    tp = torch.sum(target_positive & (output == target)).item()
-    fn = torch.sum(target_positive & (output != target)).item()
+    target_positive = torch.isin(valid_target, token_ids)
+    output_positive = torch.isin(valid_output, token_ids)
+
+    tp = torch.sum(target_positive & (valid_output == valid_target)).item()
+    fn = torch.sum(target_positive & (valid_output != valid_target)).item()
     fp = torch.sum((~target_positive) & output_positive).item()
     tn = torch.sum((~target_positive) & (~output_positive)).item()
 
@@ -35,7 +39,6 @@ def compute_confusion_matrix_for_tokens(
 
 
 def compute_sequence_accuracy(output: Tensor, target: Tensor) -> float:
-    special_ids = torch.tensor(list(Vocab.SPECIAL_TO_ID.values()), device=target.device)
-    special_mask = torch.isin(target, special_ids)
-    matching = ((target == output) | special_mask).all(dim=1)
+    padding_mask = target == Vocab.PAD.id
+    matching = ((target == output) | padding_mask).all(dim=1)
     return matching.float().mean().item()
