@@ -21,8 +21,5 @@ class PositionalEncoding(Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x: Tensor) -> Tensor:
-        # Scaling
-        x = x * math.sqrt(self.embedding_dim)
-
         # [batch_size, seq_length, d_model]
         return self.dropout(x + self.pe[:, :x.size(1)])
