@@ -33,15 +33,7 @@ class Vocab:
         self.id_to_token = {value: key for key, value in token_to_id.items()}
 
         self.stress_token_to_id = {
-            token: token_to_id[token]
-            for token in STRESS_MARKS
-            if token in token_to_id
-        }
-
-        self.non_special_token_to_id = {
-            token: _id
-            for token, _id in token_to_id.items()
-            if token not in self.SPECIAL_TO_ID
+            token: token_to_id[token] for token in STRESS_MARKS if token in token_to_id
         }
 
     @classmethod
@@ -72,7 +64,7 @@ class Vocab:
 
     @classmethod
     def init_target_vocab(cls, texts: List[str]) -> Self:
-        texts = [re.sub(rf"[^{re.escape(STRESS_MARKS)}\s]", cls.UNK.token, text) for text in texts]
+        texts = [re.sub(rf"[^{re.escape(STRESS_MARKS)}]", cls.UNK.token, text) for text in texts]
         return cls.init_from_texts(texts)
 
     def __len__(self) -> int:

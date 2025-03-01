@@ -40,7 +40,7 @@ def run(version: str, weights: str, filepath: Path) -> None:
 
     with filepath.open("r", encoding="utf-8") as file:
         for text in file.readlines():
-            texts.extend(split_text_into_segments_by_length(normalize_text(text)))
+            texts.extend(split_text_into_segments_by_length(normalize_text(text), max_length=150))
 
     words = [word for text in texts for word in filter_punctuations(text).split()]
     word_counts_per_text = [len(filter_punctuations(text).split()) for text in texts]
@@ -68,7 +68,7 @@ def run(version: str, weights: str, filepath: Path) -> None:
 
     logger.info("Stressing text...")
     logger.info(f"""OUTPUT:
-    {" ".join(inference.by_greedy_decoding_with_rules(text, seed=inference.config.seed) for text in tqdm(texts))}
+    {" ".join(inference.text_greedy_decoding_with_rules(text, seed=inference.config.seed) for text in tqdm(texts))}
     """)
 
 

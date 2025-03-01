@@ -77,7 +77,7 @@ def filter_punctuations(text: str) -> str:
 
 
 def is_valid_stressing(text: str) -> bool:
-    """ Input os normalized text without non-alphabetic characters except for stress marks """
+    """ Input is normalized text without non-alphabetic characters except for stress marks """
     return all(
         sum(1 for character in word if character in STRESS_MARKS) == 1
         and
