@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import List, Tuple, Dict
 
 import torch
@@ -7,7 +8,13 @@ from src.data.tokenizer import Tokenizer
 from src.data.vocab import Vocab, GRAVE_ACCENT, ACUTE_ACCENT, TILDE_ACCENT
 
 
-class AverageMeter:
+class MetricMeter(ABC):
+    @abstractmethod
+    def update(self, *_) -> None:
+        pass
+
+
+class AverageMeter(MetricMeter):
     def __init__(self) -> None:
         self.avg = 0
         self.sum = 0
@@ -19,46 +26,71 @@ class AverageMeter:
         self.avg = self.sum / self.count
 
 
-def init_metrics() -> Dict[str, AverageMeter]:
+class AccuracyMeter(MetricMeter):
+    def __init__(self, total: int) -> None:
+        self.total = total
+        self.count = 0
+        self.accuracy = 0
+
+    def update(self, count: int) -> None:
+        self.count += count
+        self.accuracy = self.count / self.total
+
+
+class ConfusionMatrixMeter(MetricMeter):
+    def __init__(self) -> None:
+        self.tp = 0
+        self.tn = 0
+        self.fp = 0
+        self.fn = 0
+        self.recall = 0
+        self.precision = 0
+        self.f1 = 0
+
+    def update(self, tp: int, tn: int, fp: int, fn: int) -> None:
+        self.tp += tp
+        self.tn += tn
+        self.fp += fp
+        self.fn += fn
+
+        tp_fp = self.tp + self.fp
+        tp_fn = self.tp + self.fn
+        precision_recall = self.precision + self.recall
+
+        self.precision = self.tp / tp_fp if tp_fp > 0 else 0.0
+        self.recall = self.tp / tp_fn if tp_fn > 0 else 0.0
+        self.f1 = 2 * self.precision * self.recall / precision_recall if precision_recall > 0 else 0.0
+
+
+def init_metrics(num_total_samples: int) -> Dict[str, MetricMeter]:
     return {
-        "sequence_accuracy": AverageMeter(),
-        "token_precision": AverageMeter(),
-        "token_recall": AverageMeter(),
-        "token_f1": AverageMeter(),
-        "grave_token_precision": AverageMeter(),
-        "grave_token_recall": AverageMeter(),
-        "grave_token_f1": AverageMeter(),
-        "acute_token_precision": AverageMeter(),
-        "acute_token_recall": AverageMeter(),
-        "acute_token_f1": AverageMeter(),
-        "tilde_token_precision": AverageMeter(),
-        "tilde_token_recall": AverageMeter(),
-        "tilde_token_f1": AverageMeter(),
+        "sequence_accuracy": AccuracyMeter(num_total_samples),
+        "token": ConfusionMatrixMeter(),
+        "grave_token": ConfusionMatrixMeter(),
+        "acute_token": ConfusionMatrixMeter(),
+        "tilde_token": ConfusionMatrixMeter(),
     }
 
 
 def update_metrics(
-        metrics: Dict[str, AverageMeter],
+        metrics: Dict[str, MetricMeter],
         output: Tensor,
         target: Tensor,
         tokenizer: Tokenizer,
-) -> Dict[str, AverageMeter]:
-    def _update(prefix: str, tokens: List[int]):
-        tp, tn, fp, fn = compute_confusion_matrix_for_tokens(output, target, tokens)
-
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
-
-        metrics[f"{prefix}_precision"].update(precision)
-        metrics[f"{prefix}_recall"].update(recall)
-        metrics[f"{prefix}_f1"].update(f1)
-
-    metrics["sequence_accuracy"].update(compute_sequence_accuracy(output, target))
-    _update("token", list(tokenizer.vocab.stress_token_to_id.values()))
-    _update("grave_token", [tokenizer.vocab.stress_token_to_id[GRAVE_ACCENT]])
-    _update("acute_token", [tokenizer.vocab.stress_token_to_id[ACUTE_ACCENT]])
-    _update("tilde_token", [tokenizer.vocab.stress_token_to_id[TILDE_ACCENT]])
+) -> Dict[str, MetricMeter]:
+    metrics["sequence_accuracy"].update(count_matching_sequences(output, target))
+    metrics["token"].update(*compute_confusion_matrix_for_tokens(
+        output, target, list(tokenizer.vocab.stress_token_to_id.values())
+    ))
+    metrics["grave_token"].update(*compute_confusion_matrix_for_tokens(
+        output, target, [tokenizer.vocab.stress_token_to_id[GRAVE_ACCENT]]
+    ))
+    metrics["acute_token"].update(*compute_confusion_matrix_for_tokens(
+        output, target, [tokenizer.vocab.stress_token_to_id[ACUTE_ACCENT]]
+    ))
+    metrics["tilde_token"].update(*compute_confusion_matrix_for_tokens(
+        output, target, [tokenizer.vocab.stress_token_to_id[TILDE_ACCENT]]
+    ))
     return metrics
 
 
@@ -82,7 +114,7 @@ def compute_confusion_matrix_for_tokens(
     return tp, tn, fp, fn
 
 
-def compute_sequence_accuracy(output: Tensor, target: Tensor) -> float:
+def count_matching_sequences(output: Tensor, target: Tensor) -> int:
     padding_mask = target == Vocab.PAD.id
     matching = ((target == output) | padding_mask).all(dim=1)
-    return matching.float().mean().item()
+    return int(torch.sum(matching).item())

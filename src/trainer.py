@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from src.data.tokenizer import Tokenizer
 from src.data.vocab import Vocab
-from src.metrics import AverageMeter, init_metrics, update_metrics
+from src.metrics import AverageMeter, AccuracyMeter, ConfusionMatrixMeter, init_metrics, update_metrics
 from src.model.transformer import Seq2SeqTransformer
 from src.paths import RUNS_DIR, CONFIG_FILE, SOURCE_TOKENIZER_FILE, TARGET_TOKENIZER_FILE
 from src.utils import get_available_device, save_config, save_weights, get_logger
@@ -101,7 +101,7 @@ class Trainer:
         self.model.eval()
         metrics = {
             "loss": AverageMeter(),
-            **init_metrics(),
+            **init_metrics(len(dataloader.dataset)),  # type: ignore
         }
 
         for batch in tqdm(dataloader):
@@ -140,11 +140,34 @@ class Trainer:
             summary_writer: Optional[SummaryWriter] = None,
             epoch: Optional[int] = None
     ) -> None:
+        def log_scalar(tag: str, scalar: float):
+            if epoch is not None and summary_writer is not None:
+                summary_writer.add_scalar(tag=tag, scalar_value=scalar, global_step=epoch)
+
         message = "\n"
         for metric, value in metrics.items():
-            message += f"\t{metric}: {value.avg:.3f}\n"
+            if isinstance(value, AverageMeter):
+                message += f"\t{metric}: {value.avg:.3f}\n"
+                log_scalar(metric, value.avg)
 
-            if epoch is not None and summary_writer is not None:
-                summary_writer.add_scalar(tag=metric, scalar_value=value.avg, global_step=epoch)
+            elif isinstance(value, AccuracyMeter):
+                message += f"\t{metric}: {value.accuracy:.3f}\n"
+                log_scalar(metric, value.accuracy)
+
+            elif isinstance(value, ConfusionMatrixMeter):
+                precision_metric = f"{metric}_precision"
+                recall_metric = f"{metric}_recall"
+                f1_metric = f"{metric}_f1"
+
+                message += f"\t{precision_metric}: {value.precision:.3f}\n"
+                message += f"\t{recall_metric}: {value.recall:.3f}\n"
+                message += f"\t{f1_metric}: {value.f1:.3f}\n"
+
+                log_scalar(precision_metric, value.precision)
+                log_scalar(recall_metric, value.recall)
+                log_scalar(f1_metric, value.f1)
+
+            else:
+                raise ValueError(f"Unknown metric type {type(value)}")
 
         self.logger.info(message)

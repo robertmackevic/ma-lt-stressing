@@ -72,7 +72,13 @@ class Inference:
                 context = torch.tensor([context_ids]).to(self.device)
 
                 with torch.no_grad():
-                    output = self.model(source, context)
+                    output = self.model(
+                        source=source,
+                        target=context,
+                        target_mask=self.model.transformer.generate_square_subsequent_mask(
+                            context.size(1), device=self.device, dtype=torch.bool
+                        )
+                    )
 
                 output_id = output.topk(1)[1].view(-1)[-1].item()
 

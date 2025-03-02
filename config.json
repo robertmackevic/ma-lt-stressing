@@ -3,7 +3,7 @@
     "batch_size": 32,
     "epochs": 500,
     "best_score_metric": "sequence_accuracy",
-    "eval_interval": 1,
+    "eval_interval": 5,
     "save_interval": 50,
     "learning_rate": 1e-4,
     "dropout": 0.1,
