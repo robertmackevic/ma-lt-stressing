@@ -3,8 +3,8 @@ from typing import List, Tuple
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from src.data.processing import remove_stress_marks
 from src.data.tokenizer import Tokenizer
+from src.data.vocab import remove_stress_marks, remove_character_before_stress_marks
 
 
 class StressingDataset(Dataset):
@@ -25,5 +25,7 @@ class StressingDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
         text = self.texts[index]
         source = self.source_tokenizer.encode(remove_stress_marks(text))
-        target = self.target_tokenizer.encode(text)
+        target = self.target_tokenizer.encode(remove_character_before_stress_marks(text))
+
+        assert len(source) == len(target)
         return source, target

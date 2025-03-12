@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from src.data.tokenizer import Tokenizer
 from src.data.vocab import Vocab
-from src.metrics import AverageMeter, AccuracyMeter, ConfusionMatrixMeter, init_metrics, update_metrics
+from src.metrics import AverageMeter, AccuracyMeter, ConfusionMatrixMeter, MetricMeter, init_metrics, update_metrics
 from src.model.transformer import Seq2SeqTransformer
 from src.paths import RUNS_DIR, CONFIG_FILE, SOURCE_TOKENIZER_FILE, TARGET_TOKENIZER_FILE
 from src.utils import get_available_device, save_config, save_weights, get_logger
@@ -60,7 +60,7 @@ class Trainer:
         self.target_tokenizer.save(model_dir / TARGET_TOKENIZER_FILE.name)
 
         best_score = 0
-        best_score_metric = self.config.best_score_metric
+        best_score_metric = "sequence_accuracy"
 
         for epoch in range(1, self.config.epochs + 1):
             self.logger.info(f"[Epoch {epoch} / {self.config.epochs}]")
@@ -71,7 +71,7 @@ class Trainer:
                 metrics = self.eval(val_dl)
                 self.log_metrics(metrics, summary_writer_eval, epoch=epoch)
 
-                score = metrics[best_score_metric].avg
+                score = metrics["sequence_accuracy"].accuracy  # type: ignore
 
                 if score > best_score:
                     best_score = score
@@ -82,7 +82,7 @@ class Trainer:
                 self.logger.info(f"Saving model weights at epoch: {epoch}")
                 save_weights(model_dir / f"weights_{epoch}.pth", self.model)
 
-    def _train_for_epoch(self, dataloader: DataLoader) -> Dict[str, AverageMeter]:
+    def _train_for_epoch(self, dataloader: DataLoader) -> Dict[str, MetricMeter]:
         self.model.train()
         metrics = {
             "loss": AverageMeter(),
@@ -97,7 +97,7 @@ class Trainer:
 
         return metrics
 
-    def eval(self, dataloader: DataLoader) -> Dict[str, AverageMeter]:
+    def eval(self, dataloader: DataLoader) -> Dict[str, MetricMeter]:
         self.model.eval()
         metrics = {
             "loss": AverageMeter(),
@@ -136,7 +136,7 @@ class Trainer:
 
     def log_metrics(
             self,
-            metrics: Dict[str, AverageMeter],
+            metrics: Dict[str, MetricMeter],
             summary_writer: Optional[SummaryWriter] = None,
             epoch: Optional[int] = None
     ) -> None:

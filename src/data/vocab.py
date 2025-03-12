@@ -9,6 +9,14 @@ STRESS_MARKS = GRAVE_ACCENT + ACUTE_ACCENT + TILDE_ACCENT
 STRESS_LETTERS = "aąeęėiįylmnoruųū"
 
 
+def remove_stress_marks(text: str) -> str:
+    return re.sub(rf"[{re.escape(STRESS_MARKS)}]", "", text)
+
+
+def remove_character_before_stress_marks(text: str) -> str:
+    return re.sub(rf".(?=[{re.escape(STRESS_MARKS)}])", "", text)
+
+
 @dataclass(frozen=True)
 class Symbol:
     id: int
@@ -59,13 +67,19 @@ class Vocab:
 
     @classmethod
     def init_source_vocab(cls, texts: List[str]) -> Self:
-        texts = [re.sub(rf"[{re.escape(STRESS_MARKS)}]", "", text) for text in texts]
-        return cls.init_from_texts(texts)
+        return cls.init_from_texts([remove_stress_marks(text) for text in texts])
 
     @classmethod
     def init_target_vocab(cls, texts: List[str]) -> Self:
-        texts = [re.sub(rf"[^{re.escape(STRESS_MARKS)}]", cls.UNK.token, text) for text in texts]
-        return cls.init_from_texts(texts)
+        return cls.init_from_texts([
+            # Replace non-stress mark characters with UNK tokens
+            re.sub(
+                rf"[^{re.escape(STRESS_MARKS)}]",
+                cls.UNK.token,
+                remove_character_before_stress_marks(text)
+            )
+            for text in texts
+        ])
 
     def __len__(self) -> int:
         return len(self.token_to_id)

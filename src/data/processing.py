@@ -86,10 +86,6 @@ def is_valid_stressing(text: str) -> bool:
     )
 
 
-def remove_stress_marks(text: str) -> str:
-    return re.sub(rf"[{re.escape(STRESS_MARKS)}]", "", text)
-
-
 def collate_fn(batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
     source, target = zip(*batch)
     padded_source = pad_sequence(source, batch_first=True, padding_value=Vocab.PAD.id)
