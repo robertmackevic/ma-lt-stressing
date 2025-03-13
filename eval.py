@@ -33,7 +33,7 @@ def run(version: str, weights: str) -> None:
     trainer.model = load_weights(filepath=model_dir / weights, model=trainer.model)
     logger.info(f"Number of trainable parameters: {count_parameters(trainer.model):,}")
 
-    for subset in ["train", "val", "test"]:
+    for subset in ["train", "val"]:
         texts = load_texts(DATA_DIR / f"{subset}.txt")
         dataset = StressingDataset(texts, source_tokenizer, target_tokenizer)
         dataloader = DataLoader(

@@ -32,7 +32,7 @@ def parse_args() -> Namespace:
         "-s", "--subset",
         type=str,
         required=False,
-        default="test",
+        default="val",
         help="Name of the .pth file",
     )
     return parser.parse_args()

@@ -35,6 +35,8 @@ def normalize_text(text: str) -> str:
         .replace("\ufeff", "")
         .replace("'", "")
         .replace("̇", "")
+        .replace("„", "\"")
+        .replace("“", "\"")
         .strip()
         .lower()
     )
