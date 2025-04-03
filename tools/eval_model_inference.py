@@ -8,7 +8,7 @@ from src.data.dataset import StressingDataset
 from src.data.processing import load_texts
 from src.data.sampler import BucketSampler
 from src.data.vocab import Vocab
-from src.metrics import init_metrics, update_metrics, AccuracyMeter, AverageMeter, ConfusionMatrixMeter
+from src.metrics import init_metrics, update_metrics, compile_metrics_message
 from src.model.inference import Inference
 from src.paths import RUNS_DIR, DATA_DIR
 from src.utils import log_systems_info, get_logger
@@ -76,23 +76,7 @@ def run(version: str, weights: str, subset: str) -> None:
 
             update_metrics(metrics, output, target, inference.target_tokenizer)
 
-        message = "\n"
-        for metric, value in metrics.items():
-            if isinstance(value, AverageMeter):
-                message += f"\t{metric}: {value.avg:.3f}\n"
-
-            elif isinstance(value, AccuracyMeter):
-                message += f"\t{metric}: {value.accuracy:.3f}\n"
-
-            elif isinstance(value, ConfusionMatrixMeter):
-                message += f"\t{metric}_precision: {value.precision:.3f}\n"
-                message += f"\t{metric}_recall: {value.recall:.3f}\n"
-                message += f"\t{metric}_f1: {value.f1:.3f}\n"
-
-            else:
-                raise ValueError(f"Unknown metric type {type(value)}")
-
-        logger.info(message)
+        logger.info(compile_metrics_message(metrics))
 
     except KeyboardInterrupt:
         logger.info("Evaluation terminated.")

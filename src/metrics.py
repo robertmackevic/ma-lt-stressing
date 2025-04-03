@@ -118,3 +118,20 @@ def count_matching_sequences(output: Tensor, target: Tensor) -> int:
     padding_mask = target == Vocab.PAD.id
     matching = ((target == output) | padding_mask).all(dim=1)
     return int(torch.sum(matching).item())
+
+
+def compile_metrics_message(metrics: Dict[str, MetricMeter]) -> str:
+    message = "\n"
+    for metric, value in metrics.items():
+        if isinstance(value, AccuracyMeter):
+            message += f"\t{metric}: {value.accuracy:.3f}\n"
+
+        elif isinstance(value, ConfusionMatrixMeter):
+            message += f"\t{metric}_precision: {value.precision:.3f}\n"
+            message += f"\t{metric}_recall: {value.recall:.3f}\n"
+            message += f"\t{metric}_f1: {value.f1:.3f}\n"
+
+        else:
+            raise ValueError(f"Unknown metric type {type(value)}")
+
+    return message
