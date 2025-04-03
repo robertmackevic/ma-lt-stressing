@@ -1,13 +1,11 @@
 from argparse import Namespace, ArgumentParser
 
-import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.data.dataset import StressingDataset
 from src.data.processing import load_texts
 from src.data.sampler import BucketSampler
-from src.data.vocab import Vocab
 from src.metrics import init_metrics, update_metrics, compile_metrics_message
 from src.model.inference import Inference
 from src.paths import RUNS_DIR, DATA_DIR
@@ -64,16 +62,6 @@ def run(version: str, weights: str, subset: str) -> None:
             source = batch[0].to(inference.device)
             target = batch[1].to(inference.device)
             output = inference.tensor_greedy_decoding_with_rules(source, seed=inference.config.seed)
-
-            # In case of inadequate inference, pad the sequences to compensate for missing or excess tokens
-            if output.size(1) < target.size(1):
-                padding = torch.full((1, target.size(1) - output.size(1)), Vocab.EOS.id, device=output.device)
-                output = torch.cat([output, padding], dim=1)
-
-            elif target.size(1) < output.size(1):
-                padding = torch.full((1, output.size(1) - target.size(1)), Vocab.PAD.id, device=target.device)
-                target = torch.cat([target, padding], dim=1)
-
             update_metrics(metrics, output, target, inference.target_tokenizer)
 
         logger.info(compile_metrics_message(metrics))

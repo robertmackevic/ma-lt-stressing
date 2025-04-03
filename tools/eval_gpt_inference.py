@@ -1,12 +1,20 @@
 from argparse import Namespace, ArgumentParser
 from typing import Optional
 
+import torch
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 
 from src.data.processing import load_texts
-from src.data.vocab import remove_stress_marks, GRAVE_ACCENT, ACUTE_ACCENT, TILDE_ACCENT, STRESS_LETTERS
+from src.data.tokenizer import Tokenizer
+from src.data.vocab import (
+    Vocab,
+    remove_character_before_stress_marks,
+    remove_stress_marks,
+    GRAVE_ACCENT, ACUTE_ACCENT, TILDE_ACCENT, STRESS_LETTERS
+)
+from src.metrics import init_metrics, update_metrics, compile_metrics_message
 from src.paths import DATA_DIR, ENV_FILE
 
 SYSTEM_MESSAGE = {
@@ -51,7 +59,9 @@ def run(gpt_version: str, sample_size: Optional[int]) -> None:
     print(f"Running inference with GPT version: {gpt_version}")
     client = OpenAI()
 
-    correct = 0
+    metrics = init_metrics(len(texts))
+    tokenizer = Tokenizer(Vocab.init_target_vocab(texts))
+    error_list = []
 
     try:
         for target_text in tqdm(texts):
@@ -64,14 +74,33 @@ def run(gpt_version: str, sample_size: Optional[int]) -> None:
 
             output_text = completion.choices[0].message.content
 
-            if output_text == target_text:
-                correct += 1
+            target = tokenizer.encode(remove_character_before_stress_marks(target_text)).unsqueeze(0)
+            output = tokenizer.encode(remove_character_before_stress_marks(output_text)).unsqueeze(0)
+
+            # In case of inadequate inference, pad the sequences to compensate for missing or excess tokens
+            if output.size(1) < target.size(1):
+                padding = torch.full((1, target.size(1) - output.size(1)), Vocab.EOS.id, device=output.device)
+                output = torch.cat([output, padding], dim=1)
+
+            elif target.size(1) < output.size(1):
+                padding = torch.full((1, output.size(1) - target.size(1)), Vocab.PAD.id, device=target.device)
+                target = torch.cat([target, padding], dim=1)
+
+            update_metrics(metrics, output, target, tokenizer)
+
+            if target_text != output_text:
+                error_list.append((target_text, output_text))
 
     except KeyboardInterrupt:
         print("Evaluation terminated.")
 
     finally:
-        print(f"Accuracy: {correct / len(texts):.3f}")
+        message = "\n"
+        for item in error_list:
+            message += f"VAL: {item[0]}\nGPT: {item[1]}\n"
+
+        print(message)
+        print(compile_metrics_message(metrics))
 
 
 if __name__ == "__main__":

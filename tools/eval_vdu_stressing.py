@@ -1,8 +1,9 @@
 import re
+from typing import List
 
 from tqdm import tqdm
 
-from src.data.processing import normalize_text
+from src.data.processing import normalize_text, split_text_into_segments_by_length, filter_punctuations
 from src.data.tokenizer import Tokenizer
 from src.data.vocab import STRESS_MARKS, Vocab, remove_character_before_stress_marks
 from src.metrics import init_metrics, update_metrics, compile_metrics_message
@@ -14,14 +15,28 @@ def remove_following_punctuations(text: str) -> str:
     return re.sub(rf"[^a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ{STRESS_MARKS}]+$", "", text)
 
 
+def clean_texts(texts: List[str]) -> List[str]:
+    cleaned_texts = []
+    for text in texts:
+        text = normalize_text(text)
+
+        for segment in split_text_into_segments_by_length(text):
+            filtered_text = filter_punctuations(segment)
+
+            if len(filtered_text) > 0:
+                cleaned_texts.append(remove_following_punctuations(segment))
+
+    return cleaned_texts
+
+
 def run() -> None:
     logger = get_logger()
 
     with (DATA_DIR / "val.txt").open("r", encoding="utf-8") as file:
-        val_texts = [normalize_text(remove_following_punctuations(line)) for line in file.readlines()]
+        val_texts = clean_texts(file.readlines())
 
     with (DATA_DIR / "vdu.txt").open("r", encoding="utf-8") as file:
-        vdu_texts = [normalize_text(line) for line in file.readlines()]
+        vdu_texts = [line.strip() for line in file.readlines()]
 
     assert len(val_texts) == len(vdu_texts)
 
