@@ -6,14 +6,10 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 
-from src.data.processing import load_texts
+from src.data.const import GRAVE_ACCENT, ACUTE_ACCENT, TILDE_ACCENT, STRESS_LETTERS, EOS, PAD
+from src.data.processing import load_texts, remove_character_before_stress_marks, remove_stress_marks
 from src.data.tokenizer import Tokenizer
-from src.data.vocab import (
-    Vocab,
-    remove_character_before_stress_marks,
-    remove_stress_marks,
-    GRAVE_ACCENT, ACUTE_ACCENT, TILDE_ACCENT, STRESS_LETTERS
-)
+from src.data.vocab import Vocab
 from src.metrics import init_metrics, update_metrics, compile_metrics_message
 from src.paths import DATA_DIR, ENV_FILE
 
@@ -79,11 +75,11 @@ def run(gpt_version: str, sample_size: Optional[int]) -> None:
 
             # In case of inadequate inference, pad the sequences to compensate for missing or excess tokens
             if output.size(1) < target.size(1):
-                padding = torch.full((1, target.size(1) - output.size(1)), Vocab.EOS.id, device=output.device)
+                padding = torch.full((1, target.size(1) - output.size(1)), EOS.id, device=output.device)
                 output = torch.cat([output, padding], dim=1)
 
             elif target.size(1) < output.size(1):
-                padding = torch.full((1, output.size(1) - target.size(1)), Vocab.PAD.id, device=target.device)
+                padding = torch.full((1, output.size(1) - target.size(1)), PAD.id, device=target.device)
                 target = torch.cat([target, padding], dim=1)
 
             update_metrics(metrics, output, target, tokenizer)

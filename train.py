@@ -40,7 +40,7 @@ def run() -> None:
     )
 
     trainer = Trainer(config, source_tokenizer, target_tokenizer)
-    logger.info(f"Number of trainable parameters: {count_parameters(trainer.model):,}")
+    logger.info(f"Number of trainable parameters: {count_parameters(trainer.model, trainable=True):,}")
 
     try:
         logger.info("Starting training...")

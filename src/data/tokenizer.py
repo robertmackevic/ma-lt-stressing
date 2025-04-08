@@ -4,6 +4,7 @@ from typing import Self
 
 import torch
 
+from src.data.const import PAD, UNK, SOS, EOS
 from src.data.vocab import Vocab
 
 
@@ -18,16 +19,16 @@ class Tokenizer:
             return cls(Vocab(tokenizer_data["token_to_id"], tokenizer_data["token_freq"]))
 
     def encode(self, text: str) -> torch.Tensor:
-        return torch.tensor([Vocab.SOS.id] + [
-            self.vocab.token_to_id.get(token, Vocab.UNK.id)
+        return torch.tensor([SOS.id] + [
+            self.vocab.token_to_id.get(token, UNK.id)
             for token in text
-        ] + [Vocab.EOS.id])
+        ] + [EOS.id])
 
     def decode(self, tensor: torch.Tensor) -> str:
         return "".join(
-            self.vocab.id_to_token.get(token_id, Vocab.UNK.token)
+            self.vocab.id_to_token.get(token_id, UNK.token)
             for token_id in tensor.tolist()
-        ).translate(str.maketrans("", "", Vocab.PAD.token + Vocab.SOS.token + Vocab.EOS.token))
+        ).translate(str.maketrans("", "", PAD.token + SOS.token + EOS.token))
 
     def compute_class_weights(self) -> torch.Tensor:
         total_tokens = sum(self.vocab.token_freq.values())

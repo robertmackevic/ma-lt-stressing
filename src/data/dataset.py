@@ -3,8 +3,8 @@ from typing import List, Tuple
 from torch import Tensor
 from torch.utils.data import Dataset
 
+from src.data.processing import remove_stress_marks, remove_character_before_stress_marks
 from src.data.tokenizer import Tokenizer
-from src.data.vocab import remove_stress_marks, remove_character_before_stress_marks
 
 
 class StressingDataset(Dataset):

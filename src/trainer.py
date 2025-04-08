@@ -11,8 +11,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import tqdm
 
+from src.data.const import PAD
 from src.data.tokenizer import Tokenizer
-from src.data.vocab import Vocab
 from src.metrics import AverageMeter, AccuracyMeter, ConfusionMatrixMeter, MetricMeter, init_metrics, update_metrics
 from src.model.transformer import Seq2SeqTransformer
 from src.paths import RUNS_DIR, CONFIG_FILE, SOURCE_TOKENIZER_FILE, TARGET_TOKENIZER_FILE
@@ -42,7 +42,7 @@ class Trainer:
         )
         self.loss_fn = CrossEntropyLoss(
             weight=target_tokenizer.compute_class_weights(),
-            ignore_index=Vocab.PAD.id,
+            ignore_index=PAD.id,
         ).to(self.device)
 
     def fit(self, train_dl: DataLoader, val_dl: DataLoader) -> None:
@@ -126,8 +126,8 @@ class Trainer:
             target_mask=self.model.transformer.generate_square_subsequent_mask(
                 target_input.size(1), device=self.device, dtype=torch.bool
             ),
-            source_padding_mask=source == Vocab.PAD.id,
-            target_padding_mask=target_input == Vocab.PAD.id,
+            source_padding_mask=source == PAD.id,
+            target_padding_mask=target_input == PAD.id,
         )
 
         loss = self.loss_fn(output.transpose(1, 2), target_output)

@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 
-from src.data.vocab import STRESS_LETTERS, STRESS_MARKS, Vocab
+from src.data.const import STRESS_MARKS, STRESS_LETTERS, PAD
 
 
 def load_texts(filepath: Path, clean: bool = True) -> Optional[List[str]]:
@@ -88,8 +88,16 @@ def is_valid_stressing(text: str) -> bool:
     )
 
 
+def remove_stress_marks(text: str) -> str:
+    return re.sub(rf"[{re.escape(STRESS_MARKS)}]", "", text)
+
+
+def remove_character_before_stress_marks(text: str) -> str:
+    return re.sub(rf".(?=[{re.escape(STRESS_MARKS)}])", "", text)
+
+
 def collate_fn(batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
     source, target = zip(*batch)
-    padded_source = pad_sequence(source, batch_first=True, padding_value=Vocab.PAD.id)
-    padded_target = pad_sequence(target, batch_first=True, padding_value=Vocab.PAD.id)
+    padded_source = pad_sequence(source, batch_first=True, padding_value=PAD.id)
+    padded_target = pad_sequence(target, batch_first=True, padding_value=PAD.id)
     return padded_source, padded_target

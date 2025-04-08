@@ -4,8 +4,8 @@ from typing import List, Tuple, Dict
 import torch
 from torch import Tensor
 
+from src.data.const import GRAVE_ACCENT, ACUTE_ACCENT, TILDE_ACCENT, PAD
 from src.data.tokenizer import Tokenizer
-from src.data.vocab import Vocab, GRAVE_ACCENT, ACUTE_ACCENT, TILDE_ACCENT
 
 
 class MetricMeter(ABC):
@@ -98,7 +98,7 @@ def compute_confusion_matrix_for_tokens(
         output: Tensor, target: Tensor, token_ids: List[int]
 ) -> Tuple[int, int, int, int]:
     token_ids = torch.tensor(token_ids, device=target.device)
-    non_padding_mask = target != Vocab.PAD.id
+    non_padding_mask = target != PAD.id
 
     valid_target = target[non_padding_mask]
     valid_output = output[non_padding_mask]
@@ -115,7 +115,7 @@ def compute_confusion_matrix_for_tokens(
 
 
 def count_matching_sequences(output: Tensor, target: Tensor) -> int:
-    padding_mask = target == Vocab.PAD.id
+    padding_mask = target == PAD.id
     matching = ((target == output) | padding_mask).all(dim=1)
     return int(torch.sum(matching).item())
 

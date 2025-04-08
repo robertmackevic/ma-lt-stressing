@@ -1,33 +1,11 @@
 import re
-from dataclasses import dataclass
 from typing import Dict, Self, List
 
-GRAVE_ACCENT = "\u0300"
-ACUTE_ACCENT = "\u0301"
-TILDE_ACCENT = "\u0303"
-STRESS_MARKS = GRAVE_ACCENT + ACUTE_ACCENT + TILDE_ACCENT
-STRESS_LETTERS = "aąeęėiįylmnoruųū"
-
-
-def remove_stress_marks(text: str) -> str:
-    return re.sub(rf"[{re.escape(STRESS_MARKS)}]", "", text)
-
-
-def remove_character_before_stress_marks(text: str) -> str:
-    return re.sub(rf".(?=[{re.escape(STRESS_MARKS)}])", "", text)
-
-
-@dataclass(frozen=True)
-class Symbol:
-    id: int
-    token: str
+from src.data.const import STRESS_MARKS, PAD, UNK, SOS, EOS
+from src.data.processing import remove_stress_marks, remove_character_before_stress_marks
 
 
 class Vocab:
-    PAD = Symbol(id=0, token="*")
-    UNK = Symbol(id=1, token="#")
-    SOS = Symbol(id=2, token="<")
-    EOS = Symbol(id=3, token=">")
     SPECIAL_TO_ID = {
         PAD.token: PAD.id,
         UNK.token: UNK.id,
@@ -48,7 +26,7 @@ class Vocab:
     def init_from_texts(cls, texts: List[str]) -> Self:
         token_to_id = {**cls.SPECIAL_TO_ID}
         token_freq = {
-            token: len(texts) if token in (cls.SOS.token, cls.EOS.token) else 0
+            token: len(texts) if token in (SOS.token, EOS.token) else 0
             for token in token_to_id.keys()
         }
 
@@ -75,7 +53,7 @@ class Vocab:
             # Replace non-stress mark characters with UNK tokens
             re.sub(
                 rf"[^{re.escape(STRESS_MARKS)}]",
-                cls.UNK.token,
+                UNK.token,
                 remove_character_before_stress_marks(text)
             )
             for text in texts

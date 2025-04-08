@@ -4,8 +4,9 @@ from typing import Optional
 import torch
 from torch import Tensor
 
+from src.data.const import STRESS_LETTERS, UNK, SOS, EOS
+from src.data.processing import remove_stress_marks
 from src.data.tokenizer import Tokenizer
-from src.data.vocab import Vocab, STRESS_LETTERS, remove_stress_marks
 from src.model.transformer import Seq2SeqTransformer
 from src.paths import CONFIG_FILE, SOURCE_TOKENIZER_FILE, TARGET_TOKENIZER_FILE
 from src.utils import load_config, get_available_device, load_weights, seed_everything
@@ -60,7 +61,7 @@ class Inference:
         source_ids = source.squeeze().tolist()[1:-1]
         source_length = len(source_ids)
 
-        context_ids = [Vocab.SOS.id]
+        context_ids = [SOS.id]
         is_word_stressed = False
         i = 0
 
@@ -91,11 +92,11 @@ class Inference:
             else:
                 i += 1
                 next_id = source_ids[i] if i < source_length else None
-                context_ids.append(Vocab.UNK.id)
+                context_ids.append(UNK.id)
 
                 if not is_word_stressed and next_id in self.stress_letter_ids:
                     is_word_stressed = infer_and_append()
                     i += 1
 
-        context_ids.append(Vocab.EOS.id)
+        context_ids.append(EOS.id)
         return torch.tensor([context_ids]).to(self.device)

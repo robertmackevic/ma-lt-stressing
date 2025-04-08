@@ -3,9 +3,15 @@ from typing import List
 
 from tqdm import tqdm
 
-from src.data.processing import normalize_text, split_text_into_segments_by_length, filter_punctuations
+from src.data.const import STRESS_MARKS
+from src.data.processing import (
+    normalize_text,
+    split_text_into_segments_by_length,
+    filter_punctuations,
+    remove_character_before_stress_marks,
+)
 from src.data.tokenizer import Tokenizer
-from src.data.vocab import STRESS_MARKS, Vocab, remove_character_before_stress_marks
+from src.data.vocab import Vocab
 from src.metrics import init_metrics, update_metrics, compile_metrics_message
 from src.paths import DATA_DIR
 from src.utils import get_logger
