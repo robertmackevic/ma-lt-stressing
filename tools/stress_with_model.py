@@ -31,12 +31,22 @@ def parse_args() -> Namespace:
         dest="filepath",
         help="Input text file",
     )
+    parser.add_argument(
+        "--beams",
+        type=int,
+        required=False,
+        default=None,
+        help="Number of beams to use during beam search, if not specified, then greedy decoding will be used",
+    )
     return parser.parse_args()
 
 
-def run(version: str, weights: str, filepath: Path) -> None:
+def run(version: str, weights: str, filepath: Path, beams: int) -> None:
     logger = get_logger()
     texts = []
+
+    if beams is not None and beams <= 0:
+        raise ValueError("Number of beams must be greater than 0")
 
     with filepath.open("r", encoding="utf-8") as file:
         for text in file.readlines():
@@ -68,7 +78,7 @@ def run(version: str, weights: str, filepath: Path) -> None:
 
     logger.info("Stressing text...")
     logger.info(f"""OUTPUT:
-    {" ".join(inference.text_greedy_decoding_with_rules(text, seed=inference.config.seed) for text in tqdm(texts))}
+    {" ".join(inference.text_decoding(text, num_beams=beams, seed=inference.config.seed) for text in tqdm(texts))}
     """)
 
 

@@ -33,11 +33,21 @@ def parse_args() -> Namespace:
         default="val",
         help="Name of the .pth file",
     )
+    parser.add_argument(
+        "--beams",
+        type=int,
+        required=False,
+        default=None,
+        help="Number of beams to use during beam search, if not specified, then greedy decoding will be used",
+    )
     return parser.parse_args()
 
 
-def run(version: str, weights: str, subset: str) -> None:
+def run(version: str, weights: str, subset: str, beams: int) -> None:
     logger = get_logger()
+
+    if beams is not None and beams <= 0:
+        raise ValueError("Number of beams must be greater than 0")
 
     logger.info("Preparing the model...")
     inference = Inference(
@@ -61,7 +71,13 @@ def run(version: str, weights: str, subset: str) -> None:
         for batch in tqdm(dataloader):
             source = batch[0].to(inference.device)
             target = batch[1].to(inference.device)
-            output = inference.tensor_greedy_decoding_with_rules(source, seed=inference.config.seed)
+
+            if beams is None:
+                output = inference.tensor_greedy_decoding_with_rules(source, seed=inference.config.seed)
+
+            else:
+                output = inference.tensor_beam_search_decoding(source, beams, seed=inference.config.seed)
+
             update_metrics(metrics, output, target, inference.target_tokenizer)
 
         logger.info(compile_metrics_message(metrics))

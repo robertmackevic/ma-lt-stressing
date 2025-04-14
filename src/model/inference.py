@@ -3,6 +3,7 @@ from typing import Optional
 
 import torch
 from torch import Tensor
+from torch.nn.functional import log_softmax
 
 from src.data.const import STRESS_LETTERS, UNK, SOS, EOS
 from src.data.processing import remove_stress_marks
@@ -31,9 +32,15 @@ class Inference:
         ).to(self.device)
         self.model.eval()
 
-    def text_greedy_decoding_with_rules(self, text: str, seed: Optional[int] = None) -> str:
+    def text_decoding(self, text: str, num_beams: Optional[int] = None, seed: Optional[int] = None) -> str:
         source = self.source_tokenizer.encode(remove_stress_marks(text)).unsqueeze(0)
-        output = self.tensor_greedy_decoding_with_rules(source, seed)
+
+        if num_beams is None:
+            output = self.tensor_greedy_decoding_with_rules(source, seed)
+
+        else:
+            output = self.tensor_beam_search_decoding(source, num_beams, seed)
+
         output_tokens = self.target_tokenizer.decode(output.squeeze())
 
         stressed_text = ""
@@ -100,3 +107,65 @@ class Inference:
 
         context_ids.append(EOS.id)
         return torch.tensor([context_ids]).to(self.device)
+
+    def tensor_beam_search_decoding(self, source: Tensor, beam_size: int = 3, seed: Optional[int] = None) -> Tensor:
+        if source.size(0) != 1:
+            raise RuntimeError(f"Beam search decoding only supports batch size of 1, got {source.size(0)}")
+
+        if seed is not None:
+            seed_everything(seed)
+
+        self.model.eval()
+        source = source.to(self.device)
+
+        beams = [([SOS.id], 0.0)]
+        completed_beams = []
+
+        for _ in range(self.config.max_sequence_length):
+            new_beams = []
+
+            # For each sequence in the beam, extend it if not already terminated
+            for sequence, score in beams:
+                if sequence[-1] == EOS.id:
+                    completed_beams.append((sequence, score))
+                    continue
+
+                # Build the target context for the current sequence
+                context = torch.tensor([sequence], device=self.device)
+
+                with torch.no_grad():
+                    output = self.model(
+                        source=source,
+                        target=context,
+                        target_mask=self.model.transformer.generate_square_subsequent_mask(
+                            context.size(1), device=self.device, dtype=torch.bool
+                        )
+                    )
+                # Get logits for the last token in the sequence [1, vocab_size]
+                logits = output[:, -1, :]
+                log_probs = log_softmax(logits, dim=-1)
+
+                # Get the top beam_size token candidates
+                top_k_log_probs, top_k_indices = log_probs.topk(beam_size)
+
+                for log_prob, token_id in zip(top_k_log_probs[0], top_k_indices[0]):
+                    new_seq = sequence + [token_id.item()]
+                    new_score = score + log_prob.item()
+                    new_beams.append((new_seq, new_score))
+
+            if not new_beams:
+                break
+
+            # Retain the top beam_size candidates
+            new_beams.sort(key=lambda x: x[1], reverse=True)
+            beams = new_beams[:beam_size]
+
+        # If any sequence has finished with EOS, choose the best finished sequence;
+        # otherwise, take the best sequence so far.
+        if completed_beams:
+            best_seq = max(completed_beams, key=lambda x: x[1])[0]
+
+        else:
+            best_seq = beams[0][0]
+
+        return torch.tensor([best_seq], device=self.device)
