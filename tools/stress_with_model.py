@@ -38,10 +38,17 @@ def parse_args() -> Namespace:
         default=None,
         help="Number of beams to use during beam search, if not specified, then greedy decoding will be used",
     )
+    parser.add_argument(
+        "--with-rules",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Flag to use greedy decoding with rules",
+    )
     return parser.parse_args()
 
 
-def run(version: str, weights: str, filepath: Path, beams: int) -> None:
+def run(version: str, weights: str, filepath: Path, beams: int, with_rules: bool) -> None:
     logger = get_logger()
     texts = []
 
@@ -78,7 +85,9 @@ def run(version: str, weights: str, filepath: Path, beams: int) -> None:
 
     logger.info("Stressing text...")
     logger.info(f"""OUTPUT:
-    {" ".join(inference.text_decoding(text, num_beams=beams, seed=inference.config.seed) for text in tqdm(texts))}
+    {" ".join(inference.text_decoding(
+        text, num_beams=beams, seed=inference.config.seed, with_rules=with_rules
+    ) for text in tqdm(texts))}
     """)
 
 

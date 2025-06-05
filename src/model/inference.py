@@ -32,14 +32,23 @@ class Inference:
         ).to(self.device)
         self.model.eval()
 
-    def text_decoding(self, text: str, num_beams: Optional[int] = None, seed: Optional[int] = None) -> str:
+    def text_decoding(
+            self,
+            text: str,
+            num_beams: Optional[int] = None,
+            seed: Optional[int] = None,
+            with_rules: bool = False
+    ) -> str:
         source = self.source_tokenizer.encode(remove_stress_marks(text)).unsqueeze(0)
 
-        if num_beams is None:
+        if num_beams is not None:
+            output = self.tensor_beam_search_decoding(source, num_beams, seed)
+
+        elif with_rules:
             output = self.tensor_greedy_decoding_with_rules(source, seed)
 
         else:
-            output = self.tensor_beam_search_decoding(source, num_beams, seed)
+            output = self.tensor_greedy_decoding(source, seed)
 
         output_tokens = self.target_tokenizer.decode(output.squeeze())
 
@@ -107,6 +116,38 @@ class Inference:
 
         context_ids.append(EOS.id)
         return torch.tensor([context_ids]).to(self.device)
+
+    def tensor_greedy_decoding(self, source: torch.Tensor, seed: Optional[int] = None) -> Tensor:
+        if seed is not None:
+            seed_everything(seed)
+
+        self.model.eval()
+        source = source.to(self.device)
+        batch_size = source.size(0)
+
+        # Start each sequence with SOS token
+        decoded_ids = torch.full((batch_size, 1), SOS.id, dtype=torch.long, device=self.device)
+        finished = torch.zeros(batch_size, dtype=torch.bool, device=self.device)
+
+        for step in range(self.config.max_sequence_length):
+            with torch.no_grad():
+                output = self.model(
+                    source=source,
+                    target=decoded_ids,
+                    target_mask=self.model.transformer.generate_square_subsequent_mask(
+                        decoded_ids.size(1), device=self.device, dtype=torch.bool
+                    )
+                )
+            # Take the last time-step's output for each item and select the token with highest probability (greedy)
+            next_tokens = output[:, -1, :].argmax(-1)
+            decoded_ids = torch.cat([decoded_ids, next_tokens.unsqueeze(1)], dim=1)
+
+            # Update which sequences have finished (EOS)
+            finished |= (next_tokens == EOS.id)
+            if finished.all():
+                break
+
+        return decoded_ids
 
     def tensor_beam_search_decoding(self, source: Tensor, beam_size: int = 3, seed: Optional[int] = None) -> Tensor:
         if source.size(0) != 1:

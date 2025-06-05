@@ -40,10 +40,17 @@ def parse_args() -> Namespace:
         default=None,
         help="Number of beams to use during beam search, if not specified, then greedy decoding will be used",
     )
+    parser.add_argument(
+        "--with-rules",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Flag to use greedy decoding with rules",
+    )
     return parser.parse_args()
 
 
-def run(version: str, weights: str, subset: str, beams: int) -> None:
+def run(version: str, weights: str, subset: str, beams: int, with_rules: bool) -> None:
     logger = get_logger()
 
     if beams is not None and beams <= 0:
@@ -72,11 +79,14 @@ def run(version: str, weights: str, subset: str, beams: int) -> None:
             source = batch[0].to(inference.device)
             target = batch[1].to(inference.device)
 
-            if beams is None:
+            if beams is not None:
+                output = inference.tensor_beam_search_decoding(source, beams, seed=inference.config.seed)
+
+            elif with_rules:
                 output = inference.tensor_greedy_decoding_with_rules(source, seed=inference.config.seed)
 
             else:
-                output = inference.tensor_beam_search_decoding(source, beams, seed=inference.config.seed)
+                output = inference.tensor_greedy_decoding(source, seed=inference.config.seed)
 
             update_metrics(metrics, output, target, inference.target_tokenizer)
 
