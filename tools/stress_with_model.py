@@ -84,11 +84,11 @@ def run(version: str, weights: str, filepath: Path, beams: int, with_rules: bool
     )
 
     logger.info("Stressing text...")
-    logger.info(f"""OUTPUT:
-    {" ".join(inference.text_decoding(
+    stressed_texts = "\n".join(inference.text_decoding(
         text, num_beams=beams, seed=inference.config.seed, with_rules=with_rules
-    ) for text in tqdm(texts))}
-    """)
+    ) for text in tqdm(texts))
+
+    logger.info(f"OUTPUT:\n{stressed_texts}")
 
 
 if __name__ == "__main__":
