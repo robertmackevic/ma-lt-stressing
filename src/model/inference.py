@@ -56,7 +56,10 @@ class Inference:
         text_iterator = iter(text)
 
         for token in output_tokens:
-            stressed_text += next(text_iterator)
+            try:
+                stressed_text += next(text_iterator)
+            except StopIteration:
+                print(f"Skipping token {token} in text `{stressed_text}`")
 
             if token in self.target_tokenizer.vocab.stress_token_to_id:
                 stressed_text += token

@@ -18,12 +18,15 @@ SYSTEM_MESSAGE = {
     "content": f"""
         You will be given a Lithuanian text.
         Your role is to stress the text using Lithuanian text stressing rules (kirčiavimo taisyklės).
-        Return only the stressed text and nothing else - DO NOT TALK BACK.
+        Return only the stressed text and nothing else.
         Stressed text is a combination of the original text with stress marks added in the correct places.
         Each word MUST have only a single stress mark added.
         To add a stress mark, place the appropriate character after the letter that should be stressed.
         Stress marks are these 3 characters: {GRAVE_ACCENT}{ACUTE_ACCENT}{TILDE_ACCENT}
         They can be placed after one of these letters: {STRESS_LETTERS}
+        Here's an example:
+        * Original text: Ir niekas net nemėgina ką nors daryti.
+        * Stressed text: Ir̃ niẽkas nèt nemėgìna ką̃ nórs darýti.
     """
 }
 
